@@ -21,6 +21,15 @@ def train_one_epoch(train_loader,
     '''
     # switch to train mode
     model.train() 
+
+#    for name, param in model.named_parameters():
+#        if not param.is_cuda:
+#            raise RuntimeError(f"Parameter {name} is not on CUDA!")
+    
+#    for name, buffer in model.named_buffers():
+#        if not buffer.is_cuda:
+#            raise RuntimeError(f"Buffer {name} is not on CUDA!")
+
  
     loss_list = []
 
@@ -28,7 +37,16 @@ def train_one_epoch(train_loader,
         step += iter
         optimizer.zero_grad()
         images, targets = data
-        images, targets = images.cuda(non_blocking=True).float(), targets.cuda(non_blocking=True).float()
+        images = images.cuda(non_blocking=True).float()
+        targets = targets.cuda(non_blocking=True).float()
+
+
+
+#        print("Checking all parameters and buffers:")
+#        for name, param in model.named_parameters():
+#            print(f"Parameter {name}: {param.device}")
+#        for name, buffer in model.named_buffers():
+#            print(f"Buffer {name}: {buffer.device}")
 
         out = model(images)
         loss = criterion(out, targets)

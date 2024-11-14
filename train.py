@@ -46,6 +46,7 @@ def main(config):
     set_seed(config.seed)
     torch.cuda.empty_cache()
 
+    print(f"Using {torch.cuda.device_count()} GPUs.")
 
 
 
@@ -53,7 +54,7 @@ def main(config):
     print('#----------Preparing dataset----------#')
     train_dataset = NPY_datasets(config.data_path, config, train=True)
     train_loader = DataLoader(train_dataset,
-                                batch_size=config.batch_size, 
+                                batch_size=config.batch_size * torch.cuda.device_count(), 
                                 shuffle=True,
                                 pin_memory=True,
                                 num_workers=config.num_workers)
@@ -80,14 +81,62 @@ def main(config):
             drop_path_rate=model_cfg['drop_path_rate'],
             load_ckpt_path=model_cfg['load_ckpt_path'],
         )
+
+        
+        print("Before load_from()")
+        print(next(model.parameters()).device)
+    
         model.load_from()
+    
+        
+        print("After load_from()")
+        print(next(model.parameters()).device)
+    
+       
+        model = model.cuda()
+
+        if torch.cuda.device_count() > 1:
+            model = torch.nn.DataParallel(model)
+
+        cal_params_flops(model if not isinstance(model, torch.nn.DataParallel) else model.module, 256, logger)
+    
+
+        if hasattr(model, 'total_ops'):
+            del model.total_ops
+            print('deleted total_ops')
+
+        if hasattr(model, 'total_params'):
+            del model.total_params
+            print('deleted total_params')
+
+    
+        print("After .cuda()")
+        print(next(model.parameters()).device)
+    
+    
+        for param in model.parameters():
+            param.data = param.data.cuda()
+    
+        for buffer in model.buffers():
+            buffer.data = buffer.data.cuda()
+
+    
+        for name, param in model.named_parameters():
+            if not param.is_cuda:
+                print(f"Parameter {name} still on CPU!")
+            
+        for name, buffer in model.named_buffers():
+            if not buffer.is_cuda:
+                print(f"Buffer {name} still on CPU!")
+
+        
+        print("Final device check:")
+        print(next(model.parameters()).device)
+
         
     else: raise Exception('network in not right!')
-    model = model.cuda()
 
-    cal_params_flops(model, 256, logger)
-
-
+    print(f"Using {torch.cuda.device_count()} GPUs.")
 
 
 

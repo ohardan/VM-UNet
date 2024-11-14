@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+pre_trained_weights/
+results/
+data/
+
 # C extensions
 *.so
 
